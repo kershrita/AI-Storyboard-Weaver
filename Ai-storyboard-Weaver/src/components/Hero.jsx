@@ -13,14 +13,14 @@ export default function Hero() {
         transition={{ duration: 0.8 }}
       />
       <motion.h1
-        className="text-5xl font-orbitron text-[#00D4FF] mb-4"
+        className="text-5xl font-orbitron text-neon-blue mb-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
       >
         AI Storyboard Weaver
       </motion.h1>
-      <p className="text-xl text-[#FFD700]">
+      <p className="text-xl text-cinematic-gold">
         <Typewriter words={["Turn Your Ideas into Cinematic Magic"]} loop={true} />
       </p>
     </section>
