@@ -1,5 +1,5 @@
 import ReactMarkdown from "react-markdown";
-import blogContent from "../blogpost/capstone_blogpost.md?raw";
+// import blogContent from "../blogpost/capstone_blogpost.md?raw";
 
 export default function About() {
   return (
