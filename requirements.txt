@@ -1,0 +1,13 @@
+azure-ai-inference
+requests
+beautifulsoup4
+matplotlib
+numpy
+sentence-transformers
+scikit-learn
+python-dotenv
+tf-keras
+transformers
+ipywidgets
+openai
+pillow

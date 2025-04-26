@@ -1,0 +1,57 @@
+{
+  "title": "Joyful Chaos in the Park",
+  "visual_style": "Anime",
+  "genre": "Drama (Slice-of-Life)",
+  "scenes": [
+    {
+      "scene_number": 1,
+      "description": "A wide-angle shot of the park under a vibrant blue sky. Sunlight filters through cherry blossom trees. Children sprint across the grass, their balloons bobbing in rainbow hues. A small girl in a yellow dress trips and drops her candy, prompting a playful gasp.",
+      "dialogue": {
+        "girl": "Oh no! My lollipop!",
+        "boy": "Hurry, before the ants get it! *giggles*"
+      },
+      "mood": "joyful",
+      "image_filename": "scene_1.png"
+    },
+    {
+      "scene_number": 2,
+      "description": "Two boys dash around a wooden bench, their sneakers kicking up petals. One clutches a half-melted ice cream cone. The camera pans dynamically to follow their zigzag path, anime-style speed lines emphasizing their motion.",
+      "dialogue": {
+        "boy1": "You\u2019ll never catch me!",
+        "boy2": "Bet I will! *panting*"
+      },
+      "mood": "chaotic",
+      "image_filename": "scene_2.png"
+    },
+    {
+      "scene_number": 3,
+      "description": "A group of kids spin in a circle, arms outstretched. The background swirls in a exaggerated anime spiral effect. They collapse laughing into the grass, hair tousled and cheeks flushed.",
+      "dialogue": {
+        "child1": "Whoa\u2026 the sky\u2019s dancing!",
+        "child2": "Again, again!"
+      },
+      "mood": "joyful",
+      "image_filename": "scene_3.png"
+    },
+    {
+      "scene_number": 4,
+      "description": "A close-up of a red balloon slipping from a toddler\u2019s grip. The camera tilts upward as it floats toward the sun, casting a soft glow. Other children pause to point, their faces awestruck.",
+      "dialogue": {
+        "toddler": "Bye-bye, balloon\u2026",
+        "older_kid": "Maybe it\u2019ll meet the clouds!"
+      },
+      "mood": "hopeful",
+      "image_filename": "scene_4.png"
+    },
+    {
+      "scene_number": 5,
+      "description": "The park empties as golden hour begins. A lone balloon drifts out of frame. Distant giggles echo. The scene fades with a warm, watercolor-style sunset.",
+      "dialogue": {
+        "offscreen_mom": "Time to go home!",
+        "child": "Just five more minutes\u2026 *yawns*"
+      },
+      "mood": "hopeful",
+      "image_filename": "scene_5.png"
+    }
+  ]
+}
