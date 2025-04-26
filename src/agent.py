@@ -11,12 +11,14 @@ from datetime import datetime
 from azure.ai.inference import ChatCompletionsClient
 from azure.ai.inference.models import SystemMessage, UserMessage
 from azure.core.credentials import AzureKeyCredential
+from openai import AzureOpenAI
+from PIL import Image, ImageDraw, ImageFont
 from IPython.display import display, Markdown
 from .config import CONFIG
 from .utils import init_knowledge_base
 
 class StoryboardAgent:
-    """Main agent class for storyboard generation with DeepSeek API and RAG."""
+    """Main agent class for storyboard generation with DeepSeek API, RAG, and DALL-E 3 images."""
 
     def __init__(self, endpoint: str, api_key: str, model_name: str, knowledge_base_path: str = None):
         try:
@@ -25,11 +27,20 @@ class StoryboardAgent:
             print(f"⚠️ Could not load embedding model: {e}")
             self.embedding_model = None
         
+        # Initialize DeepSeek client
         self.client = ChatCompletionsClient(
             endpoint=endpoint,
             credential=AzureKeyCredential(api_key)
         )
         self.model_name = model_name
+        
+        # Initialize Azure OpenAI client for DALL-E 3
+        self.image_client = AzureOpenAI(
+            api_version="2024-02-01",
+            azure_endpoint=os.environ["DALLE_MODEL_ENDPOINT"],
+            api_key=os.environ["DALLE_MODEL_API_KEY"]
+        )
+        
         self.knowledge_base_path = knowledge_base_path or CONFIG["knowledge_base"]
         self.available_functions = {
             "generate_storyboard": self.generate_storyboard,
@@ -49,18 +60,23 @@ class StoryboardAgent:
             display(Markdown(f"⚠️ **Error in {function_name}:** {str(e)}"))
             return None
 
-    def generate_storyboard(self, plot: str, num_scenes: int = 3) -> Dict:
-        """Generate a storyboard using DeepSeek API with RAG context."""
+    def generate_storyboard(self, plot: str, num_scenes: int = 3, visual_style: str = "Cinematic") -> Dict:
+        """Generate a storyboard using DeepSeek API with RAG context and DALL-E 3 images."""
         similar_plots = self.retrieve_similar_plots(plot)
         rag_context = "\nSimilar plots:\n" + "\n".join(
             [f"- {p['plot']}" for p in similar_plots[:2]]) if similar_plots else ""
-        prompt = self._build_prompt(plot, num_scenes, rag_context)
+        prompt = self._build_prompt(plot, num_scenes, rag_context, visual_style)
         storyboard = self._call_generation_api(prompt)
         if storyboard:
+            # Generate images for each scene
+            for scene in storyboard.get("scenes", []):
+                image_filename = self._generate_scene_image(scene, plot, visual_style, os.path.dirname(self.knowledge_base_path))
+                if image_filename:
+                    scene["image_filename"] = image_filename
             self._update_knowledge_base(plot, storyboard)
         return storyboard
 
-    def _build_prompt(self, plot: str, num_scenes: int, rag_context: str = "") -> str:
+    def _build_prompt(self, plot: str, num_scenes: int, rag_context: str = "", visual_style: str = "Cinematic") -> str:
         """Construct the generation prompt for DeepSeek API."""
         genre = self.detect_genre(plot)
         wiki_context = self.fetch_wikipedia_film_data(genre)
@@ -74,12 +90,107 @@ Format Requirements:
   • vivid description
   • natural dialogue
   • mood from: {CONFIG['moods']}
+Visual Style: {visual_style}
 Genre Context:
 {wiki_context[:CONFIG['context_length']]}
 {rag_context}
 Example Dialogue:
 {script_example}
 Output:"""
+
+    def _sanitize_prompt(self, prompt: str) -> str:
+        """Sanitize the prompt to avoid content policy violations."""
+        # Replace sensitive terms
+        replacements = {
+            r'\bmurder\b': 'mysterious event',
+            r'\bkill\b': 'confront',
+            r'\bknife\b': 'object',
+            r'\bblood\b': 'shadow',
+            r'\bviolent\b': 'tense',
+            r'\bdeath\b': 'disappearance',
+            r'\bwet dress\b': 'rain-soaked clothing',
+            r'\bdress adhering to her form\b': 'clothing damp from rain'
+        }
+        sanitized = prompt.lower()
+        for pattern, replacement in replacements.items():
+            sanitized = re.sub(pattern, replacement, sanitized, flags=re.IGNORECASE)
+        return sanitized
+
+    def _create_placeholder_image(self, scene_number: int, output_dir: str) -> str:
+        """Create a placeholder PNG for failed image generation."""
+        try:
+            image = Image.new('RGB', (1024, 1024), color='gray')
+            draw = ImageDraw.Draw(image)
+            try:
+                font = ImageFont.truetype("arial.ttf", 40)
+            except:
+                font = ImageFont.load_default()
+            text = f"Scene {scene_number}\nImage Not Generated"
+            draw.text((50, 450), text, fill='white', font=font)
+            placeholder_filename = os.path.join(output_dir, f"placeholder_scene_{scene_number}.png")
+            image.save(placeholder_filename)
+            print(f"Created placeholder image: {placeholder_filename}")
+            return os.path.basename(placeholder_filename)
+        except Exception as e:
+            print(f"Error creating placeholder image for scene {scene_number}: {str(e)}")
+            return None
+
+    def _generate_scene_image(self, scene: Dict, plot: str, visual_style: str, output_dir: str) -> str:
+        """Generate an image for a scene using DALL-E 3 and save it."""
+        scene_number = scene.get("scene_number", 1)
+        description = scene.get("description", "A generic scene")
+        mood = scene.get("mood", "neutral")
+        max_retries = 2
+        
+        for attempt in range(max_retries):
+            try:
+                # Build and sanitize DALL-E 3 prompt
+                raw_prompt = f"""
+A {visual_style.lower()} style scene from a film about "{plot}". {description}. 
+The mood is {mood}, reflected in lighting, colors, and atmosphere. 
+Maintain consistent {visual_style.lower()} art style, color palette, and visual tone across all scenes.
+Highly detailed, vivid, and cinematic composition.
+"""
+                image_prompt = self._sanitize_prompt(raw_prompt)
+                print(f"Generating image for scene {scene_number} with prompt: {image_prompt[:100]}...")
+                
+                # Call DALL-E 3 API
+                result = self.image_client.images.generate(
+                    model="scene-maker",
+                    prompt=image_prompt,
+                    n=1,
+                    size="1024x1024"
+                )
+                
+                # Get image URL and download
+                image_url = json.loads(result.model_dump_json())['data'][0]['url']
+                image_filename = os.path.join(output_dir, f"scene_{scene_number}.png")
+                
+                # Download and save image
+                response = requests.get(image_url)
+                response.raise_for_status()
+                with open(image_filename, 'wb') as f:
+                    f.write(response.content)
+                
+                print(f"Saved image to: {image_filename}")
+                return os.path.basename(image_filename)
+            
+            except Exception as e:
+                if 'content_policy_violation' in str(e) and attempt < max_retries - 1:
+                    # Retry with a safer fallback prompt
+                    print(f"Content policy violation for scene {scene_number}, retrying with safer prompt...")
+                    image_prompt = f"""
+A {visual_style.lower()} style scene depicting a {mood} moment in a film. 
+A generic setting with characters in appropriate attire, focusing on atmosphere and lighting. 
+Maintain consistent {visual_style.lower()} art style and color palette.
+Highly detailed and cinematic.
+"""
+                    continue
+                print(f"Error generating image for scene {scene_number}: {str(e)}")
+                display(Markdown(f"⚠️ **Error generating image for scene {scene_number}:** {str(e)}"))
+                # Use placeholder image on final failure
+                return self._create_placeholder_image(scene_number, output_dir)
+        return self._create_placeholder_image(scene_number, output_dir)
 
     def _call_generation_api(self, prompt: str) -> Dict:
         """Call DeepSeek API to generate a storyboard."""

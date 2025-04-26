@@ -52,16 +52,16 @@ def create_ui():
     
     # Initialize agent with story-specific knowledge base
     agent = StoryboardAgent(
-        endpoint=os.environ["MODEL_ENDPOINT"],
-        api_key=os.environ["MODEL_API_KEY"],
-        model_name=os.environ["MODEL_NAME"],
+        endpoint=os.environ["LLM_MODEL_ENDPOINT"],
+        api_key=os.environ["LLM_MODEL_API_KEY"],
+        model_name=os.environ["LLM_MODEL_NAME"],
         knowledge_base_path=knowledge_base_path
     )
     
     # Generate and display storyboard
     try:
         print("\n🔍 Analyzing your plot...")
-        storyboard = agent.execute_function("generate_storyboard", plot=plot, num_scenes=num_scenes)
+        storyboard = agent.execute_function("generate_storyboard", plot=plot, num_scenes=num_scenes, visual_style=style)
         if not storyboard:
             raise ValueError("Storyboard generation failed.")
         
@@ -69,7 +69,7 @@ def create_ui():
         mood_analysis = agent.execute_function("analyze_mood", storyboard=storyboard)
         
         print(f"\n🎬 {storyboard.get('title', 'Your Storyboard')}")
-        display_storyboard(storyboard)
+        display_storyboard(storyboard, story_output_dir)
         visualize_mood(mood_analysis, story_output_dir)
         
         # Save storyboard in story-specific folder

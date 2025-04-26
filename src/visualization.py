@@ -1,4 +1,4 @@
-from IPython.display import display, Markdown
+from IPython.display import display, Markdown, Image
 import matplotlib.pyplot as plt
 import os
 
@@ -40,11 +40,19 @@ def visualize_mood(mood_counts: dict, story_output_dir: str):
     plt.close()
     display(Markdown(f"![Mood Distribution Chart]({chart_filename})"))
 
-def display_storyboard(storyboard: dict):
-    """Render the storyboard in Markdown format."""
+def display_storyboard(storyboard: dict, output_dir: str):
+    """Render the storyboard in Markdown format with images."""
     display(Markdown(f"## 🎬 {storyboard.get('title', 'Untitled Storyboard')}"))
     for scene in storyboard.get("scenes", []):
         mood = scene.get("mood", "neutral").lower()
+        image_filename = scene.get("image_filename")
+        if image_filename and os.path.exists(os.path.join(output_dir, image_filename)):
+            # Display image using IPython.display.Image
+            image_path = os.path.join(output_dir, image_filename)
+            display(Markdown(f"**Image for Scene {scene.get('scene_number', 1)}:**"))
+            display(Image(filename=image_path))
+        else:
+            display(Markdown("⚠️ No image available"))
         display(Markdown(f"""
 ### 🎥 Scene {scene.get('scene_number', 1)} ({mood.capitalize()})
 
