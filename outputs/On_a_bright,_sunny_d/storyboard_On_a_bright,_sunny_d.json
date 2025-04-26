@@ -1,0 +1,26 @@
+{
+  "title": "Untitled On a bright, sunny day at the park, laughter fills the air. Children run and talkacross the green lawns, their tiny hands clutching colorful balloons and sticky candies. Some chase each other around the benches, while others spin in circles until they fall into the soft grass, giggling uncontrollably.",
+  "scenes": [
+    {
+      "scene_number": 1,
+      "description": "Scene 1 of On a bright, sunny day at the park, laughter fills the air. Children run and talkacross the green lawns, their tiny hands clutching colorful balloons and sticky candies. Some chase each other around the benches, while others spin in circles until they fall into the soft grass, giggling uncontrollably.",
+      "dialogue": "...",
+      "mood": "neutral",
+      "image_filename": "scene_1.png"
+    },
+    {
+      "scene_number": 2,
+      "description": "Scene 2 of On a bright, sunny day at the park, laughter fills the air. Children run and talkacross the green lawns, their tiny hands clutching colorful balloons and sticky candies. Some chase each other around the benches, while others spin in circles until they fall into the soft grass, giggling uncontrollably.",
+      "dialogue": "...",
+      "mood": "neutral",
+      "image_filename": "scene_2.png"
+    },
+    {
+      "scene_number": 3,
+      "description": "Scene 3 of On a bright, sunny day at the park, laughter fills the air. Children run and talkacross the green lawns, their tiny hands clutching colorful balloons and sticky candies. Some chase each other around the benches, while others spin in circles until they fall into the soft grass, giggling uncontrollably.",
+      "dialogue": "...",
+      "mood": "neutral",
+      "image_filename": "scene_3.png"
+    }
+  ]
+}

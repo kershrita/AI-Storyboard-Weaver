@@ -9,3 +9,5 @@ python-dotenv
 tf-keras
 transformers
 ipywidgets
+openai
+pillow
