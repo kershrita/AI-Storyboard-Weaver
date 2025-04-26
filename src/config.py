@@ -9,5 +9,6 @@ CONFIG = {
     "rag_threshold": 0.7,
     "knowledge_base": "knowledge_base.json",
     "embedding_model": "all-MiniLM-L6-v2",
-    "default_genre": "drama"
+    "default_genre": "drama",
+    "output_dir": "outputs" 
 }

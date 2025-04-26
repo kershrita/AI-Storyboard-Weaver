@@ -1,8 +1,9 @@
 from IPython.display import display, Markdown
 import matplotlib.pyplot as plt
+import os
 
-def visualize_mood(mood_counts: dict):
-    """Create and display a mood visualization."""
+def visualize_mood(mood_counts: dict, story_output_dir: str):
+    """Create and display a mood visualization in the story-specific folder."""
     if not mood_counts:
         display(Markdown("⚠️ No mood data available"))
         return
@@ -29,7 +30,12 @@ def visualize_mood(mood_counts: dict):
                 fontsize=11, fontweight='bold')
     plt.xticks(rotation=45, ha='right', fontsize=11)
     plt.tight_layout()
-    chart_filename = "mood_distribution.png"
+    
+    # Ensure story-specific output directory exists
+    os.makedirs(story_output_dir, exist_ok=True)
+    
+    # Save chart in story-specific folder
+    chart_filename = os.path.join(story_output_dir, "mood_distribution.png")
     plt.savefig(chart_filename, bbox_inches='tight')
     plt.close()
     display(Markdown(f"![Mood Distribution Chart]({chart_filename})"))

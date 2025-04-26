@@ -1,6 +1,7 @@
 import json
 import re
 import requests
+import os
 from typing import Dict, List
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
@@ -17,7 +18,7 @@ from .utils import init_knowledge_base
 class StoryboardAgent:
     """Main agent class for storyboard generation with DeepSeek API and RAG."""
 
-    def __init__(self, endpoint: str, api_key: str, model_name: str):
+    def __init__(self, endpoint: str, api_key: str, model_name: str, knowledge_base_path: str = None):
         try:
             self.embedding_model = SentenceTransformer(CONFIG["embedding_model"])
         except Exception as e:
@@ -29,12 +30,13 @@ class StoryboardAgent:
             credential=AzureKeyCredential(api_key)
         )
         self.model_name = model_name
+        self.knowledge_base_path = knowledge_base_path or CONFIG["knowledge_base"]
         self.available_functions = {
             "generate_storyboard": self.generate_storyboard,
             "analyze_mood": self.analyze_mood,
             "save_storyboard": self.save_storyboard
         }
-        init_knowledge_base(CONFIG["knowledge_base"])
+        init_knowledge_base(self.knowledge_base_path)
 
     def execute_function(self, function_name: str, **kwargs):
         """Execute a registered function with error handling."""
@@ -174,10 +176,14 @@ Output:"""
     def save_storyboard(self, storyboard: Dict, filename: str) -> bool:
         """Save the storyboard to a JSON file."""
         try:
+            print(f"Saving storyboard to: {filename}")
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
             with open(filename, 'w') as f:
                 json.dump(storyboard, f, indent=2)
+            print(f"Successfully saved storyboard to: {filename}")
             return True
         except Exception as e:
+            print(f"Error saving storyboard to {filename}: {str(e)}")
             display(Markdown(f"⚠️ **Error saving storyboard:** {str(e)}"))
             return False
 
@@ -185,7 +191,7 @@ Output:"""
         """Retrieve similar plots using vector similarity."""
         if not self.embedding_model:
             return []
-        with open(CONFIG["knowledge_base"], "r") as f:
+        with open(self.knowledge_base_path, "r") as f:
             kb = json.load(f)
         if not kb["plots"]:
             return []
@@ -200,7 +206,7 @@ Output:"""
     def _update_knowledge_base(self, plot: str, storyboard: Dict):
         """Update the knowledge base with a new plot and storyboard."""
         try:
-            with open(CONFIG["knowledge_base"], "r") as f:
+            with open(self.knowledge_base_path, "r") as f:
                 kb = json.load(f)
             plot_embedding = self.embedding_model.encode(plot).tolist() if self.embedding_model else []
             kb["plots"].append({
@@ -209,7 +215,7 @@ Output:"""
                 "embedding": plot_embedding,
                 "timestamp": str(datetime.now())
             })
-            with open(CONFIG["knowledge_base"], "w") as f:
+            with open(self.knowledge_base_path, "w") as f:
                 json.dump(kb, f, indent=2)
         except Exception as e:
             display(Markdown(f"⚠️ Could not update knowledge base: {e}"))

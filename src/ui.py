@@ -1,91 +1,84 @@
 import os
-import ipywidgets as widgets
-from IPython.display import display, Markdown, HTML
 from .agent import StoryboardAgent
 from .visualization import display_storyboard, visualize_mood
 from .config import CONFIG
+from .utils import sanitize_filename
 
 def create_ui():
-    """Create and display the UI for the Storyboard Weaver."""
-    plot_input = widgets.Textarea(
-        placeholder='Describe your story (e.g., "A detective discovers aliens in 1920s Chicago")',
-        description='Plot:',
-        layout=widgets.Layout(width='80%', height='100px'),
-        style={'description_width': 'initial'}
+    """Create a console-based UI for the Storyboard Weaver."""
+    print("=== 🎬 AI Storyboard Weaver ===")
+    print("✍️ Enter your story parameters below:")
+    
+    # Get plot input
+    plot = input("Describe your story (e.g., 'A detective discovers aliens in 1920s Chicago'): ").strip()
+    if not plot:
+        print("❌ Error: Plot cannot be empty.")
+        return
+    
+    # Get number of scenes
+    while True:
+        try:
+            num_scenes = int(input(f"Number of scenes (1-{CONFIG['max_scenes']}): ").strip())
+            if 1 <= num_scenes <= CONFIG["max_scenes"]:
+                break
+            print(f"❌ Error: Number of scenes must be between 1 and {CONFIG['max_scenes']}.")
+        except ValueError:
+            print("❌ Error: Please enter a valid number.")
+    
+    # Get visual style with numbered selection
+    style_options = ['Cinematic', 'Documentary', 'Anime', 'Noir', 'Experimental']
+    print("Available visual styles:")
+    for i, style in enumerate(style_options, 1):
+        print(f"{i}. {style}")
+    while True:
+        try:
+            style_choice = int(input("Select visual style (1-5): ").strip())
+            if 1 <= style_choice <= len(style_options):
+                style = style_options[style_choice - 1]
+                break
+            print(f"❌ Error: Please enter a number between 1 and {len(style_options)}.")
+        except ValueError:
+            print("❌ Error: Please enter a valid number.")
+    print(f"Selected style: {style}")
+    
+    # Create story-specific output folder
+    story_folder_name = sanitize_filename(plot)
+    story_output_dir = os.path.join(CONFIG["output_dir"], story_folder_name)
+    print(f"Creating output directory: {story_output_dir}")
+    os.makedirs(story_output_dir, exist_ok=True)
+    
+    # Set knowledge base path for this story
+    knowledge_base_path = os.path.join(story_output_dir, CONFIG["knowledge_base"])
+    
+    # Initialize agent with story-specific knowledge base
+    agent = StoryboardAgent(
+        endpoint=os.environ["MODEL_ENDPOINT"],
+        api_key=os.environ["MODEL_API_KEY"],
+        model_name=os.environ["MODEL_NAME"],
+        knowledge_base_path=knowledge_base_path
     )
-    scenes_slider = widgets.IntSlider(
-        value=3, min=1, max=CONFIG["max_scenes"], step=1,
-        description='Number of Scenes:',
-        continuous_update=False,
-        style={'description_width': 'initial'}
-    )
-    style_selector = widgets.Dropdown(
-        options=['Cinematic', 'Documentary', 'Anime', 'Noir', 'Experimental'],
-        value='Cinematic',
-        description='Visual Style:',
-        style={'description_width': 'initial'}
-    )
-    generate_btn = widgets.Button(
-        description='Generate Storyboard',
-        button_style='success',
-        layout=widgets.Layout(width='200px', height='40px'),
-        icon='film'
-    )
-    output_area = widgets.Output()
-
-    def on_generate_click(b):
-        with output_area:
-            output_area.clear_output()
-            steps = widgets.HBox([
-                widgets.Label(value="Progress:"),
-                widgets.IntProgress(value=0, min=0, max=4, description='', bar_style='info')
-            ])
-            display(steps)
-            agent = StoryboardAgent(
-                endpoint=os.environ["MODEL_ENDPOINT"],
-                api_key=os.environ["MODEL_API_KEY"],
-                model_name=os.environ["MODEL_NAME"]
-            )
-            try:
-                steps.children[1].value = 1
-                display(Markdown("### 🔍 Analyzing your plot..."))
-                steps.children[1].value = 2
-                display(Markdown("### 🎥 Generating storyboard..."))
-                storyboard = agent.execute_function(
-                    "generate_storyboard",
-                    plot=plot_input.value,
-                    num_scenes=scenes_slider.value
-                )
-                if not storyboard:
-                    raise ValueError("Generation failed")
-                steps.children[1].value = 3
-                display(Markdown("### 📊 Analyzing story structure..."))
-                mood_analysis = agent.execute_function("analyze_mood", storyboard=storyboard)
-                steps.children[1].value = 4
-                display(Markdown(f"## 🎬 {storyboard.get('title', 'Your Storyboard')}"))
-                display_storyboard(storyboard)
-                visualize_mood(mood_analysis)
-                filename = f"storyboard_{plot_input.value[:20].replace(' ', '_')}.json"
-                if agent.execute_function("save_storyboard", storyboard=storyboard, filename=filename):
-                    display(Markdown("### 💾 Download Options"))
-                    display(HTML(f"""
-                    <a href="{filename}" download>
-                        <button style="background-color:#4CAF50; color:white; padding:10px 20px; border:none; border-radius:6px; font-size:14px; margin:5px">
-                            Download JSON
-                        </button>
-                    </a>
-                    """))
-                steps.children[1].bar_style = 'success'
-            except Exception as e:
-                steps.children[1].bar_style = 'danger'
-                display(Markdown(f"## ❌ Error: {str(e)}"))
-                display(Markdown("Please try again with a different plot description."))
-
-    generate_btn.on_click(on_generate_click)
-    display(Markdown("### ✍️ Your Story Parameters"))
-    display(widgets.VBox([
-        plot_input,
-        widgets.HBox([scenes_slider, style_selector]),
-        generate_btn
-    ]))
-    display(output_area)
+    
+    # Generate and display storyboard
+    try:
+        print("\n🔍 Analyzing your plot...")
+        storyboard = agent.execute_function("generate_storyboard", plot=plot, num_scenes=num_scenes)
+        if not storyboard:
+            raise ValueError("Storyboard generation failed.")
+        
+        print("📊 Analyzing story structure...")
+        mood_analysis = agent.execute_function("analyze_mood", storyboard=storyboard)
+        
+        print(f"\n🎬 {storyboard.get('title', 'Your Storyboard')}")
+        display_storyboard(storyboard)
+        visualize_mood(mood_analysis, story_output_dir)
+        
+        # Save storyboard in story-specific folder
+        filename = os.path.join(story_output_dir, f"storyboard_{story_folder_name}.json")
+        print(f"Attempting to save storyboard to: {filename}")
+        if agent.execute_function("save_storyboard", storyboard=storyboard, filename=filename):
+            print(f"💾 Storyboard saved to {filename}")
+        else:
+            print(f"❌ Failed to save storyboard to {filename}")
+    except Exception as e:
+        print(f"❌ Error: {str(e)}")
+        print("Please try again with different parameters.")

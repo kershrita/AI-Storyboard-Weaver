@@ -3,8 +3,9 @@ requests
 beautifulsoup4
 matplotlib
 numpy
-ipywidgets
 sentence-transformers
 scikit-learn
 python-dotenv
 tf-keras
+transformers
+ipywidgets
